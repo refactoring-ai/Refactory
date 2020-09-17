@@ -22,7 +22,7 @@ dependencies {
         exclude group: 'org.slf4j'
     }
 
-    implementation 'org.gitlab4j:gitlab4j-api:4.15.6'
+    implementation 'org.gitlab4j:gitlab4j-api:4.15.7'
     implementation 'org.jboss.slf4j:slf4j-jboss-logging:1.2.0.Final'
 
     testImplementation 'io.quarkus:quarkus-junit5'
