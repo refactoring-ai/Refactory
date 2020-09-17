@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'io.quarkus'
+}
+
+repositories {
+    flatDir {
+       dirs 'libs'
+    }
+     mavenLocal()
+     mavenCentral()
+}
+
+dependencies {
+    implementation 'io.quarkus:quarkus-jsonb'
+    implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+    implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-jdbc-postgresql'
+    implementation 'io.quarkus:quarkus-hibernate-orm-panache'
+
+    implementation ('com.github.mauricioaniche:ck:0.6.3') {
+        exclude group: 'org.slf4j'
+    }
+
+    implementation 'org.gitlab4j:gitlab4j-api:4.15.6'
+    implementation 'org.jboss.slf4j:slf4j-jboss-logging:1.2.0.Final'
+
+    testImplementation 'io.quarkus:quarkus-junit5'
+}
+
+group 'com.github.refactoringai'
+version '0.1.0'
+
+compileJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+test {
+    systemProperty "java.util.logging.manager", "org.jboss.logmanager.LogManager"
+}
