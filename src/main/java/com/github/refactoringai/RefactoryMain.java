@@ -16,12 +16,12 @@ public class RefactoryMain {
 
     // The server to request GitLab information from and make mutations. This is set
     // by GitLab by default.
-    @ConfigProperty(name = "CI_SERVER_URL")
+    @ConfigProperty(name = "ci.server.url")
     String gitLabServerUrl;
 
     // The token used to authenticate to the GitLab server. The token should have
     // permission to read merge requests and create discussions on them
-    @ConfigProperty(name = "OAUTH2_TOKEN")
+    @ConfigProperty(name = "oauth2.token")
     String gitLabAccessToken;
 
     /**
