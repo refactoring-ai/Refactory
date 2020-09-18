@@ -21,14 +21,11 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class Predictor {
 
-	@ConfigProperty(name = "MODELS_DIRECTORY", defaultValue = "models")
+	@ConfigProperty(name = "models.directory", defaultValue = "models")
 	Path modelsDir;
 
-	@ConfigProperty(name = "PYTHON_PATH", defaultValue = "/usr/bin/python3")
+	@ConfigProperty(name = "python.path", defaultValue = "/usr/bin/python3")
 	Path pythonPath;
-
-	@ConfigProperty(name = "CI_PROJECT_DIR")
-	File projectDir;
 
 	@Inject
 	Jsonb jsonb;

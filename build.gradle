@@ -12,6 +12,7 @@ repositories {
 }
 
 dependencies {
+    
     implementation 'io.quarkus:quarkus-jsonb'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-arc'
@@ -24,7 +25,7 @@ dependencies {
 
     implementation 'org.gitlab4j:gitlab4j-api:4.15.7'
     implementation 'org.jboss.slf4j:slf4j-jboss-logging:1.2.0.Final'
-
+    testImplementation 'io.quarkus:quarkus-jdbc-h2'
     testImplementation 'io.quarkus:quarkus-junit5'
 }
 

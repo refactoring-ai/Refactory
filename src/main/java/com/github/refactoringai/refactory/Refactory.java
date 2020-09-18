@@ -24,13 +24,13 @@ public class Refactory implements QuarkusApplication {
 
     private static final Logger LOG = Logger.getLogger(Refactory.class);
 
-    @ConfigProperty(name = "CI_MERGE_REQUEST_PROJECT_PATH")
+    @ConfigProperty(name = "ci.merge.request.project.path")
     String gitLabProjectPath;
 
-    @ConfigProperty(name = "CI_PROJECT_DIR")
+    @ConfigProperty(name = "ci.project.dir")
     Path repositoryPath;
 
-    @ConfigProperty(name = "CI_MERGE_REQUEST_ID")
+    @ConfigProperty(name = "ci.merge.request.id")
     Integer mergeRequestId;
 
     @Inject
