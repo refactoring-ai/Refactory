@@ -33,6 +33,6 @@ class RefactoryTest {
 
     @Test
     void testMergeRequest() throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
-        poller.processMergeRequest(gitlab.getMergeRequestByIid(TEST_PROJECT_ID, TEST_MERGE_REQUEST_IID));
+        // poller.processMergeRequest(gitlab.getMergeRequestByIid(TEST_PROJECT_ID, TEST_MERGE_REQUEST_IID));
     }
 }

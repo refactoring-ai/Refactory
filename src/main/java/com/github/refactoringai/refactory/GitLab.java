@@ -47,6 +47,8 @@ public class GitLab {
      * @param surveyBaseUrl
      * @param gitLabApi
      * @param mergeRequestApi
+     * 
+     * TODO this is probaly not the best way of injecting these values, i need to learn more about the framework  probably to do it more idiomatic
      */
     @Inject
     public GitLab(@ConfigProperty(name = "amount.of.recommendations") Integer amountOfRecommendations,
