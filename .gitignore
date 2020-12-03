@@ -32,3 +32,5 @@ nb-configuration.xml
 .gradle/
 build/
 .env
+fixtures
+models

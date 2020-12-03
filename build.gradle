@@ -1,32 +1,35 @@
 plugins {
     id 'java'
     id 'io.quarkus'
+    id "com.github.ben-manes.versions" version "0.36.0"
 }
 
 repositories {
-    flatDir {
-       dirs 'libs'
-    }
      mavenLocal()
      mavenCentral()
 }
 
 dependencies {
-    
+    implementation 'io.quarkus:quarkus-jackson'
+    implementation 'io.quarkus:quarkus-jgit'
+    implementation 'io.quarkus:quarkus-scheduler'
     implementation 'io.quarkus:quarkus-jsonb'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-arc'
-    implementation 'io.quarkus:quarkus-jdbc-postgresql'
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
-
-    implementation ('com.github.mauricioaniche:ck:0.6.3') {
-        exclude group: 'org.slf4j'
-    }
-
+    implementation 'com.microsoft.onnxruntime:onnxruntime:1.5.2'
     implementation 'org.gitlab4j:gitlab4j-api:4.15.7'
-    implementation 'org.jboss.slf4j:slf4j-jboss-logging:1.2.0.Final'
-    testImplementation 'io.quarkus:quarkus-jdbc-h2'
+    implementation 'io.quarkus:quarkus-jdbc-h2'
+    implementation 'commons-lang:commons-lang:2.6'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+    implementation 'com.google.guava:guava:30.0-jre'
+    implementation 'org.jboss.logmanager:log4j-jboss-logmanager:1.2.0.Final'
+    implementation 'org.jboss.logmanager:log4j2-jboss-logmanager:1.0.0.Final'
+    implementation 'org.jboss.slf4j:slf4j-jboss-logging:1.2.1.Final'
+    implementation ('com.github.mauricioaniche:ck:0.6.3')
     testImplementation 'io.quarkus:quarkus-junit5'
+
+    
 }
 
 group 'com.github.refactoringai'
