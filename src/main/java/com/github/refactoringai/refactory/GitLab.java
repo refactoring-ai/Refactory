@@ -13,6 +13,7 @@ import javax.inject.Inject;
 
 import com.github.refactoringai.refactory.entities.RefactoringUnit;
 
+import org.apache.commons.math3.stat.StatUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.gitlab4j.api.Constants.MergeRequestState;
@@ -35,7 +36,6 @@ public class GitLab {
     private static final String SURVALYZER_URL_VAR_IDENTIFIER = "urlVar%02d";
 
     private final String surveyBaseUrl;
-    private final String recommendationTextTemplate;
     private final Integer amountOfRecommendations;
     private final Float minimumCertaintyToRecommendThreshold;
 
@@ -48,20 +48,21 @@ public class GitLab {
      * @param gitLabApi
      * @param mergeRequestApi
      * 
-     * TODO this is probaly not the best way of injecting these values, i need to learn more about the framework  probably to do it more idiomatic
+     *                                   TODO this is probaly not the best way of
+     *                                   injecting these values, i need to learn
+     *                                   more about the framework probably to do it
+     *                                   more idiomatic
      */
     @Inject
     public GitLab(@ConfigProperty(name = "amount.of.recommendations") Integer amountOfRecommendations,
             @ConfigProperty(name = "ci.server.url") String gitLabServerUrl,
             @ConfigProperty(name = "gitlab.oauth2.token") String gitLabAccessToken,
-            @ConfigProperty(name = "recommendation.text.template") String recommendationTextTemplate,
             @ConfigProperty(name = "survey.base.url") String surveyBaseUrl,
             @ConfigProperty(name = "min.certainty.recommend.threshold") Float minimumCertaintyToRecommendThreshold) {
         gitLabApi = new GitLabApi(gitLabServerUrl, gitLabAccessToken);
         gitLabApi.setIgnoreCertificateErrors(true);
         this.mergeRequestApi = gitLabApi.getMergeRequestApi();
         this.amountOfRecommendations = amountOfRecommendations;
-        this.recommendationTextTemplate = recommendationTextTemplate;
         this.surveyBaseUrl = surveyBaseUrl;
         this.minimumCertaintyToRecommendThreshold = minimumCertaintyToRecommendThreshold;
     }
@@ -82,10 +83,12 @@ public class GitLab {
     public List<Discussion> createDiscussionsFromRefactors(final MergeRequest mergeRequest,
             final List<RefactoringUnit> refactoringUnits)
             throws GitLabApiException, MalformedURLException, URISyntaxException {
+
+        LOG.infof("The following refactors are candidates to suggest: %s", refactoringUnits);
         var toRecommend = refactoringUnits.stream().filter(refactoringUnit -> refactoringUnit.shouldRefactor).filter(
                 refactoringUnit -> refactoringUnit.shouldRefactorProbability >= minimumCertaintyToRecommendThreshold)
                 .sorted().collect(Collectors.toList());
-
+        LOG.infof("The following refactors adhere to the requirements of suggestion: %s", toRecommend);
         var resultingDiscussions = new ArrayList<Discussion>();
         int addedAmount = 0;
 
@@ -98,17 +101,21 @@ public class GitLab {
                 var discussion = createRefactorDiscussion(mergeRequest.getProjectId(), mergeRequest.getIid(),
                         refactoringUnit, mergeRequest.getDiffRefs());
                 resultingDiscussions.add(discussion);
-                refactoringUnit.wasRecommended();
+                refactoringUnit.recommendationWasPlaced();
                 addedAmount++;
                 // Gitlab can complain if we recommend stuff that is not in the diff, or
                 // sometimes a 500 is given by random, we don't want to stop recommending if
                 // this happens
                 // so we catch this exception
             } catch (GitLabApiException glae) {
-                LOG.infof("Cannot add discussion with refactoringUnit %s due to %s", refactoringUnit);
+                LOG.infof("Cannot add discussion with refactoringUnit %s due to %s", refactoringUnit,
+                        glae.getMessage());
                 LOG.debugf(glae, "");
             }
         }
+        LOG.infof("The following refactors were succesfully suggested: %s", toRecommend.stream()
+                .filter(refactoringUnit -> refactoringUnit.wasRecommended).collect(Collectors.toList()));
+
         return resultingDiscussions;
     }
 
@@ -153,10 +160,38 @@ public class GitLab {
 
     }
 
+    public double medianCommitsPerMergeRequest(Object projectIdOrPath) throws GitLabApiException {
+        List<MergeRequest> mrs = mergeRequestApi.getMergeRequests(projectIdOrPath);
+
+        List<MergeRequest> mrsDivergingCommits = new ArrayList<>();
+        for (MergeRequest mergeRequest : mrs) {
+            try {
+                var withDivergingCommits = mergeRequestApi.getMergeRequest(projectIdOrPath, mergeRequest.getIid(),
+                        false, true, false);
+                mrsDivergingCommits.add(withDivergingCommits);
+                LOG.infof("Finished %d out of %d", mrsDivergingCommits.size(), mrs.size());
+
+            } catch (GitLabApiException gae) {
+                LOG.errorf(gae, "Failed to fetch %d", mergeRequest.getIid());
+            }
+        }
+
+        double[] commitCounts = mrsDivergingCommits.stream()
+                .filter(mr -> mr.getDivergedCommitsCount() != null && mr.getDivergedCommitsCount() != 0
+                        && mr.getDivergedCommitsCount() < 50)
+                .mapToDouble(mr -> mr.getDivergedCommitsCount().doubleValue()).toArray();
+        double res = StatUtils.percentile(commitCounts, 50d);
+        return res;
+    }
+
     public String generateDescription(RefactoringUnit predictionResult)
             throws MalformedURLException, URISyntaxException {
-        return String.format(recommendationTextTemplate, predictionResult.unitName,
-                generateSurveyUrl(predictionResult));
+        return String.format(
+                "Consider extracting part of the method \"%s\" to a separate method."
+                        + " ([More info](https://refactoring.com/catalog/extractFunction.html))."
+                        + " It would be of great help if you could help evaluate these recommendations:"
+                        + "[please consider filling in this survey.](%s)",
+                predictionResult.unitName, generateSurveyUrl(predictionResult));
     }
 
     public URL generateSurveyUrl(RefactoringUnit predictionResult) throws MalformedURLException, URISyntaxException {

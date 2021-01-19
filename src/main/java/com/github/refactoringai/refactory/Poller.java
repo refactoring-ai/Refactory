@@ -1,7 +1,6 @@
 package com.github.refactoringai.refactory;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -35,6 +34,7 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import io.quarkus.hibernate.orm.panache.Panache;
+import io.quarkus.narayana.jta.runtime.TransactionConfiguration;
 
 @ApplicationScoped
 public class Poller {
@@ -44,8 +44,8 @@ public class Poller {
     @Inject
     GitLab gitLab;
 
-    @ConfigProperty(name = "ci.project.dir")
-    Path repositoryPath;
+    @ConfigProperty(name = "ci.project.dirs")
+    List<Path> repositoryPaths;
 
     @ConfigProperty(name = "git.username")
     String gitUsername;
@@ -56,11 +56,11 @@ public class Poller {
     @ConfigProperty(name = "gitlab.oauth2.token")
     String gitLabAccessToken;
 
-    @ConfigProperty(name = "git.clone.uri")
-    URI gitCloneUri;
+    @ConfigProperty(name = "git.clone.uris")
+    List<URI> gitCloneUris;
 
-    @ConfigProperty(name = "gitlab.project.id")
-    Integer gitlabProjectId;
+    @ConfigProperty(name = "gitlab.project.ids")
+    List<Integer> gitlabProjectIds;
 
     @ConfigProperty(name = "model.path")
     Path modelPath;
@@ -74,31 +74,29 @@ public class Poller {
     @Inject
     Jsonb jsonb;
 
-    private Git openOrCloneRepository() throws IOException, GitAPIException {
+    private Git openOrCloneRepository(Path repositoryPath, URI cloneUri) throws IOException, GitAPIException {
         var creds = new UsernamePasswordCredentialsProvider(gitUsername, gitPassword);
         try {
             return Git.open(repositoryPath.toFile());
         } catch (RepositoryNotFoundException rnfe) {
-            LOG.infof("Repository not found at %s trying to clone from %s", repositoryPath, gitCloneUri);
+            LOG.infof("Repository not found at %s trying to clone from %s", repositoryPath, cloneUri);
             try {
-                return Git.cloneRepository().setCloneAllBranches(true).setURI(gitCloneUri.toString())
+                return Git.cloneRepository().setCloneAllBranches(true).setURI(cloneUri.toString())
                         .setDirectory(repositoryPath.toFile()).setCredentialsProvider(creds).call();
             } catch (GitAPIException gae) {
                 LOG.errorf(rnfe, "Could not open repo at %s", repositoryPath);
-                LOG.errorf(gae, "Could not clone %s Exiting", gitCloneUri);
+                LOG.errorf(gae, "Could not clone %s Exiting", cloneUri);
                 throw gae;
             }
         }
     }
 
     @Transactional
-    public List<RefactoringUnit> getRefactoringUnitsForMergeRequest(MergeRequest mergeRequest)
+    public List<RefactoringUnit> getRefactoringUnitsForMergeRequest(MergeRequest mergeRequest,
+            RefactoryMergeRequest refactoryMergeRequest, Path repositoryPath, URI cloneUri)
             throws GitLabApiException, IOException, GitAPIException, OrtException {
 
-        var refactoryMergeRequest = RefactoryMergeRequest.fromGitlabMergeRequest(mergeRequest);
-        refactoryMergeRequest.persist();
-
-        try (var git = openOrCloneRepository()) {
+        try (var git = openOrCloneRepository(repositoryPath, cloneUri)) {
             // TODO create bean to prevent duplication above
             var creds = new UsernamePasswordCredentialsProvider(gitUsername, gitPassword);
             git.fetch().setCredentialsProvider(creds).setRemote("origin").call();
@@ -134,14 +132,13 @@ public class Poller {
     }
 
     @Transactional
-    public List<Discussion> processMergeRequest(MergeRequest mergeRequest)
+    @TransactionConfiguration(timeout = Integer.MAX_VALUE)
+    public List<Discussion> processMergeRequest(MergeRequest mergeRequest, RefactoryMergeRequest refactoryMergeRequest,
+            Path repositoryPath, URI cloneUri)
             throws GitLabApiException, URISyntaxException, IOException, GitAPIException, OrtException {
-        if (RefactoryMergeRequest.hasMergeRequestBeenProcessed(mergeRequest)) {
-            return List.of();
-        }
 
-        LOG.infof("Found not yet processed merge request \"%s\"", mergeRequest.getTitle());
-        List<RefactoringUnit> toRecommend = getRefactoringUnitsForMergeRequest(mergeRequest);
+        List<RefactoringUnit> toRecommend = getRefactoringUnitsForMergeRequest(mergeRequest, refactoryMergeRequest,
+                repositoryPath, cloneUri);
         if (toRecommend.isEmpty()) {
             LOG.infof("No refactoring units for %s", mergeRequest);
             return List.of();
@@ -157,13 +154,30 @@ public class Poller {
         return discussions;
     }
 
+    @Transactional
+    @TransactionConfiguration(timeout = Integer.MAX_VALUE)
+    public void persistMergeRequestInTransaction(RefactoryMergeRequest refactoryMergeRequest) {
+        refactoryMergeRequest.persist();
+    }
+
     public void poll() throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
-        LOG.info("Polling for merge requests");
-        var mergeRequests = gitLab.getOpenedMergeRequests(gitlabProjectId);
-        for (var mergeRequest : mergeRequests) {
-            processMergeRequest(mergeRequest);
+        for (int i = 0; i < gitlabProjectIds.size(); i++) {
+            var gitlabProjectId = gitlabProjectIds.get(i);
+            var repositoryPath = repositoryPaths.get(i);
+            var gitCloneUri = gitCloneUris.get(i);
+            LOG.infof("Polling for merge requests for project \"%s\"", gitCloneUri);
+            var mergeRequests = gitLab.getOpenedMergeRequests(gitlabProjectId);
+            for (var mergeRequest : mergeRequests) {
+                if (RefactoryMergeRequest.hasMergeRequestBeenProcessed(mergeRequest)) {
+                    continue;
+                }
+                LOG.infof("Found not yet processed merge request \"%s\"", mergeRequest.getTitle());
+                var refactoryMergeRequest = RefactoryMergeRequest.fromGitlabMergeRequest(mergeRequest);
+                persistMergeRequestInTransaction(refactoryMergeRequest);
+                processMergeRequest(mergeRequest, refactoryMergeRequest, repositoryPath, gitCloneUri);
+            }
         }
-        LOG.info("Finished polling");
+        LOG.info("Finished polling all projects");
     }
 
 }

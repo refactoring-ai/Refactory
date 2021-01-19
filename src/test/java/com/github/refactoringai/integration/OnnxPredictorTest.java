@@ -1,17 +1,11 @@
 package com.github.refactoringai.integration;
 
-import java.nio.file.Paths;
-import java.util.Map;
-
 import javax.inject.Inject;
 import javax.json.bind.Jsonb;
 
 import com.github.refactoringai.refactory.MetricCollector;
 import com.github.refactoringai.refactory.OnnxPredictor;
-import com.github.refactoringai.refactory.entities.Model;
-import com.github.refactoringai.refactory.entities.RefactoryMergeRequest;
 
-import org.gitlab4j.api.models.Diff;
 import org.junit.jupiter.api.Test;
 
 import ai.onnxruntime.OrtException;

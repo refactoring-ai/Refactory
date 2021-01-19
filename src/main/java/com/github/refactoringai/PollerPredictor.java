@@ -61,7 +61,7 @@ public class PollerPredictor {
             }
         }
 
-        @Scheduled(every = "20s")
+        @Scheduled(every = "15m")
         public void pollForMergeRequests()
                 throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
             if (scheduler.isRunning() && schedulerEnabled) {

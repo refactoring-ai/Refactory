@@ -2,6 +2,8 @@ package com.github.refactoringai.refactory.entities;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Objects;
 
 import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
@@ -39,11 +41,11 @@ public class RefactoringUnit extends PanacheEntity implements Comparable<Refacto
     @Column(name = "was_recommended", nullable = false)
     public Boolean wasRecommended;
 
-    @ManyToOne(cascade = CascadeType.ALL, optional = false)
+    @ManyToOne(cascade = CascadeType.REMOVE, optional = false)
     @JoinColumn(name = "refactory_merge_request_id", nullable = false)
     public RefactoryMergeRequest refactoryMergeRequest;
 
-    @ManyToOne(cascade = CascadeType.ALL, optional = false)
+    @ManyToOne(cascade = CascadeType.REMOVE, optional = false)
     @JoinColumn(name = "model_id", nullable = false)
     public Model model;
 
@@ -77,8 +79,65 @@ public class RefactoringUnit extends PanacheEntity implements Comparable<Refacto
         return -Float.compare(this.shouldRefactorProbability, otheRefactoringUnit.shouldRefactorProbability);
     }
 
-    public void wasRecommended() {
+    public void recommendationWasPlaced() {
         wasRecommended = true;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#hashCode()
+     */
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + Arrays.hashCode(input);
+        result = prime * result + Objects.hash(lineNumber, model, newPath, oldPath, refactoryMergeRequest,
+                shouldRefactor, shouldRefactorProbability, unitName, wasRecommended);
+        return result;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        RefactoringUnit other = (RefactoringUnit) obj;
+        return Arrays.equals(input, other.input) && Objects.equals(lineNumber, other.lineNumber)
+                && Objects.equals(model, other.model) && Objects.equals(newPath, other.newPath)
+                && Objects.equals(oldPath, other.oldPath)
+                && Objects.equals(refactoryMergeRequest, other.refactoryMergeRequest)
+                && Objects.equals(shouldRefactor, other.shouldRefactor)
+                && Objects.equals(shouldRefactorProbability, other.shouldRefactorProbability)
+                && Objects.equals(unitName, other.unitName) && Objects.equals(wasRecommended, other.wasRecommended);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Object#toString()
+     */
+
+    @Override
+    public String toString() {
+        return String.format(
+                "RefactoringUnit [lineNumber=%s, newPath=%s, mergeRequestIid=%s, shouldRefactor=%s, shouldRefactorProbability=%s, unitName=%s]\n",
+                lineNumber, newPath, refactoryMergeRequest.mergeRequestIid, shouldRefactor,
+                shouldRefactorProbability, unitName);
     }
 
 }
