@@ -12,6 +12,8 @@ import com.github.refactoringai.refactory.entities.Model;
 import com.github.refactoringai.refactory.entities.RefactoringUnit;
 import com.google.common.base.Preconditions;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
@@ -43,7 +45,9 @@ public class OnnxPredictor {
 
     public void predict(OrtEnvironment env, OrtSession session, List<RefactoringUnit> samples) throws OrtException {
         Preconditions.checkArgument(!samples.isEmpty(), "No samples to predict for");
-        float[][] xs = samples.stream().map(refactoringUnit -> refactoringUnit.input).toArray(float[][]::new);
+        float[][] xs = samples.stream()
+                .map(refactoringUnit -> ArrayUtils.toPrimitive(refactoringUnit.input.toArray(new Float[0])))
+                .toArray(float[][]::new);
 
         var input = Map.of(FLOAT_INPUT_IDENTIFIER_ONNX, OnnxTensor.createTensor(env, xs));
         Result rawResult = session.run(input);
@@ -67,7 +71,6 @@ public class OnnxPredictor {
             } else {
                 var ysProbabilitiesMap = (List<Map<Long, Float>>) ysProbabilitiesObj;
                 result.shouldRefactorProbability = ysProbabilitiesMap.get(i).get(longLabel);
-                ;
             }
         }
 

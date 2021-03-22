@@ -34,3 +34,4 @@ build/
 .env
 fixtures
 models
+*.log

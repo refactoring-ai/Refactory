@@ -12,6 +12,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import com.github.refactoringai.refactory.entities.RefactoringUnit;
+import com.github.refactoringai.refactory.entities.RefactoryMergeRequest;
 
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -20,6 +21,7 @@ import org.gitlab4j.api.Constants.MergeRequestState;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.MergeRequestApi;
+import org.gitlab4j.api.ProjectApi;
 import org.gitlab4j.api.models.Diff;
 import org.gitlab4j.api.models.DiffRef;
 import org.gitlab4j.api.models.Discussion;
@@ -27,6 +29,7 @@ import org.gitlab4j.api.models.MergeRequest;
 import org.gitlab4j.api.models.MergeRequestFilter;
 import org.gitlab4j.api.models.Position;
 import org.gitlab4j.api.models.Position.PositionType;
+import org.gitlab4j.api.models.Project;
 import org.jboss.logging.Logger;
 
 @ApplicationScoped
@@ -41,6 +44,7 @@ public class GitLab {
 
     private final GitLabApi gitLabApi;
     private final MergeRequestApi mergeRequestApi;
+    private final ProjectApi projectApi;
 
     /**
      * @param recommendationTextTemplate
@@ -48,12 +52,10 @@ public class GitLab {
      * @param gitLabApi
      * @param mergeRequestApi
      * 
-     *                                   TODO this is probaly not the best way of
-     *                                   injecting these values, i need to learn
-     *                                   more about the framework probably to do it
-     *                                   more idiomatic
      */
     @Inject
+    // TODO this is probably not the best way of injecting these values, i need to
+    // learn more about the framework probably to do it more idiomatic
     public GitLab(@ConfigProperty(name = "amount.of.recommendations") Integer amountOfRecommendations,
             @ConfigProperty(name = "ci.server.url") String gitLabServerUrl,
             @ConfigProperty(name = "gitlab.oauth2.token") String gitLabAccessToken,
@@ -62,6 +64,7 @@ public class GitLab {
         gitLabApi = new GitLabApi(gitLabServerUrl, gitLabAccessToken);
         gitLabApi.setIgnoreCertificateErrors(true);
         this.mergeRequestApi = gitLabApi.getMergeRequestApi();
+        this.projectApi = gitLabApi.getProjectApi();
         this.amountOfRecommendations = amountOfRecommendations;
         this.surveyBaseUrl = surveyBaseUrl;
         this.minimumCertaintyToRecommendThreshold = minimumCertaintyToRecommendThreshold;
@@ -85,8 +88,9 @@ public class GitLab {
             throws GitLabApiException, MalformedURLException, URISyntaxException {
 
         LOG.infof("The following refactors are candidates to suggest: %s", refactoringUnits);
-        var toRecommend = refactoringUnits.stream().filter(refactoringUnit -> refactoringUnit.shouldRefactor).filter(
-                refactoringUnit -> refactoringUnit.shouldRefactorProbability >= minimumCertaintyToRecommendThreshold)
+        List<RefactoringUnit> toRecommend = refactoringUnits.stream()
+                .filter(refactoringUnit -> refactoringUnit.shouldRefactor)
+                .filter(refactoringUnit -> refactoringUnit.shouldRefactorProbability >= minimumCertaintyToRecommendThreshold)
                 .sorted().collect(Collectors.toList());
         LOG.infof("The following refactors adhere to the requirements of suggestion: %s", toRecommend);
         var resultingDiscussions = new ArrayList<Discussion>();
@@ -119,20 +123,6 @@ public class GitLab {
         return resultingDiscussions;
     }
 
-    /**
-     * Fetches the diffs for a certain merge request.
-     * 
-     * @param projectPath    The project on which to operate.
-     * @param mergeRequestId The id of the merge request of which to fetch the diffs
-     *                       of.
-     * @return The diffs of the merge request.
-     * @throws GitLabApiException If fetching the diffs was not succesfull.
-     */
-    private List<Diff> diffsForMergeRequestAndProjectIdOrPath(Object projectIdOrPath, int mergeRequestIid)
-            throws GitLabApiException {
-        return mergeRequestApi.getMergeRequestChanges(projectIdOrPath, mergeRequestIid).getChanges();
-    }
-
     public List<Diff> diffsForProjectIdAndMergeRequestIid(Integer projectId, Integer mergeRequestIid)
             throws GitLabApiException {
         return diffsForMergeRequestAndProjectIdOrPath(projectId, mergeRequestIid);
@@ -141,23 +131,6 @@ public class GitLab {
     public List<Diff> diffsForProjectPathAndMergeRequestIid(String projectPath, Integer mergeRequestIid)
             throws GitLabApiException {
         return diffsForMergeRequestAndProjectIdOrPath(projectPath, mergeRequestIid);
-    }
-
-    private Discussion createRefactorDiscussion(Object projectIdOrPath, int mergeRequestIid, RefactoringUnit refactor,
-            DiffRef diffRef) throws GitLabApiException, MalformedURLException, URISyntaxException {
-
-        var discussionsApi = gitLabApi.getDiscussionsApi();
-        var position = new Position();
-        position.setBaseSha(diffRef.getBaseSha());
-        position.setHeadSha(diffRef.getHeadSha());
-        position.setStartSha(diffRef.getStartSha());
-        position.setPositionType(PositionType.TEXT);
-        position.setNewLine(refactor.lineNumber);
-        position.setOldPath(refactor.oldPath);
-        position.setNewPath(refactor.newPath);
-        return discussionsApi.createMergeRequestDiscussion(projectIdOrPath, mergeRequestIid,
-                generateDescription(refactor), null, null, position);
-
     }
 
     public double medianCommitsPerMergeRequest(Object projectIdOrPath) throws GitLabApiException {
@@ -180,8 +153,7 @@ public class GitLab {
                 .filter(mr -> mr.getDivergedCommitsCount() != null && mr.getDivergedCommitsCount() != 0
                         && mr.getDivergedCommitsCount() < 50)
                 .mapToDouble(mr -> mr.getDivergedCommitsCount().doubleValue()).toArray();
-        double res = StatUtils.percentile(commitCounts, 50d);
-        return res;
+        return StatUtils.percentile(commitCounts, 50d);
     }
 
     public String generateDescription(RefactoringUnit predictionResult)
@@ -199,19 +171,70 @@ public class GitLab {
                 .addParameter(survalyzerUrlVariable(2), predictionResult.id.toString()).build().toURL();
     }
 
-    public List<MergeRequest> getOpenedMergeRequests(Integer projectId) throws GitLabApiException {
+    public List<MergeRequest> getOpenedMergeRequests(Project project) throws GitLabApiException {
         var filter = new MergeRequestFilter();
         filter.setState(MergeRequestState.OPENED);
+        Integer projectId = project.getId();
         filter.setProjectId(projectId);
-        return mergeRequestApi.getMergeRequests(filter);
+        List<MergeRequest> mergeRequestsWithoutDiffRefs = mergeRequestApi.getMergeRequests(filter);
+
+        // Gitlab returns lists of merge requests without diffreffs which we need for
+        // the sha, So we have to fetch all of them separately
+        List<MergeRequest> mergeRequestsWithDiffRefs = new ArrayList<>();
+        for (MergeRequest mergeRequest : mergeRequestsWithoutDiffRefs) {
+            var mergeRequestsWithDiffRef = mergeRequestApi.getMergeRequest(projectId, mergeRequest.getIid());
+            mergeRequestsWithDiffRefs.add(mergeRequestsWithDiffRef);
+        }
+
+        return mergeRequestsWithDiffRefs;
     }
 
-    public MergeRequest getMergeRequestByIid(Integer projectId, Integer mergeRequestIid) throws GitLabApiException {
-        return mergeRequestApi.getMergeRequest(projectId, mergeRequestIid);
+    public Project getProjectById(Integer projectId) throws GitLabApiException {
+        return projectApi.getProject(projectId);
+    }
+
+    public String getFileUrl(RefactoringUnit refactoringUnit) throws GitLabApiException {
+        RefactoryMergeRequest refactoryMergeRequest = refactoringUnit.refactoryMergeRequest;
+        Project gitlabProject = getProjectById(refactoryMergeRequest.project.gitlabId);
+        String projectUrl = gitlabProject.getWebUrl();
+        MergeRequest gitlabMergeRequest = mergeRequestApi.getMergeRequest(gitlabProject.getId(),
+                refactoryMergeRequest.mergeRequestIid);
+        final String format = "%s/blob/%s/%s";
+        return String.format(format, projectUrl, gitlabMergeRequest.getSha(), refactoringUnit.newPath);
     }
 
     private String survalyzerUrlVariable(Integer number) {
         return String.format(Locale.US, SURVALYZER_URL_VAR_IDENTIFIER, number);
     }
 
+    private Discussion createRefactorDiscussion(Object projectIdOrPath, int mergeRequestIid, RefactoringUnit refactor,
+            DiffRef diffRef) throws GitLabApiException, MalformedURLException, URISyntaxException {
+
+        var discussionsApi = gitLabApi.getDiscussionsApi();
+        var position = new Position();
+        position.setBaseSha(diffRef.getBaseSha());
+        position.setHeadSha(diffRef.getHeadSha());
+        position.setStartSha(diffRef.getStartSha());
+        position.setPositionType(PositionType.TEXT);
+        position.setNewLine(refactor.lineNumber);
+        position.setOldPath(refactor.oldPath);
+        position.setNewPath(refactor.newPath);
+        return discussionsApi.createMergeRequestDiscussion(projectIdOrPath, mergeRequestIid,
+                generateDescription(refactor), null, null, position);
+
+    }
+
+    /**
+     * Fetches the diffs for a certain merge request.
+     * 
+     * @param projectPath    The project on which to operate.
+     * @param mergeRequestId The id of the merge request of which to fetch the diffs
+     *                       of.
+     * @return The diffs of the merge request.
+     * @throws GitLabApiException If fetching the diffs was not succesfull.
+     */
+    private List<Diff> diffsForMergeRequestAndProjectIdOrPath(Object projectIdOrPath, int mergeRequestIid)
+            throws GitLabApiException {
+        return mergeRequestApi.getMergeRequestChanges(projectIdOrPath, mergeRequestIid).getChanges();
+    }
 }

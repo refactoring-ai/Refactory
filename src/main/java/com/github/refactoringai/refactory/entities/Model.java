@@ -2,16 +2,19 @@ package com.github.refactoringai.refactory.entities;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 import javax.json.bind.annotation.JsonbProperty;
+import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.OrderColumn;
 import javax.persistence.Table;
 
@@ -45,6 +48,9 @@ public class Model extends PanacheEntityBase {
     @OrderColumn
     @JsonbProperty("feature_names")
     public List<String> featureNames;
+
+    @OneToMany(mappedBy = "model", cascade = CascadeType.REMOVE)
+    public Collection<RefactoringUnit> mergeRequests;
 
     public Path getModelPath() {
         return Paths.get(modelPath);

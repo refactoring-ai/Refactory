@@ -1,4 +1,4 @@
-package com.github.refactoringai;
+package com.github.refactoringai.tools;
 
 import javax.inject.Inject;
 
@@ -15,15 +15,15 @@ public class ThresholdDeterminer {
 
     public static void main(String... args) {
         try {
-            Quarkus.run(SingeMergeRequestApplication.class, args);
+            Quarkus.run(ThresholdDeterminerApplication.class, args);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public static class SingeMergeRequestApplication implements QuarkusApplication {
+    public static class ThresholdDeterminerApplication implements QuarkusApplication {
 
-        private static final Logger LOG = Logger.getLogger(SingeMergeRequestApplication.class);
+        private static final Logger LOG = Logger.getLogger(ThresholdDeterminerApplication.class);
 
         @Inject
         GitLab gitlab;
@@ -34,7 +34,7 @@ public class ThresholdDeterminer {
                 throw new IllegalArgumentException("Please pass a projectIdOrPath");
             }
 
-           double med = gitlab.medianCommitsPerMergeRequest(args[0]);
+            double med = gitlab.medianCommitsPerMergeRequest(args[0]);
             LOG.infof("{median: %f}", med);
             return 0;
         }

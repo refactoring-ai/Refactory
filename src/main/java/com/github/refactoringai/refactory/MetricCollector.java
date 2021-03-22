@@ -22,6 +22,7 @@ import com.github.refactoringai.refactory.entities.Model;
 import com.github.refactoringai.refactory.entities.RefactoringUnit;
 import com.google.common.base.Preconditions;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.gitlab4j.api.models.Diff;
@@ -63,14 +64,14 @@ public class MetricCollector {
 
         List<String> featureNames = model.featureNames;
         toRawSample(featureNames, ckClassResult).ifPresent(input -> samples.add(RefactoringUnit
-                .createRefactoringUnit(diff, model, CLASS_START_LINE, input, ckClassResult.getClassName())));
+                .createRefactoringUnit(diff, model, CLASS_START_LINE, ArrayUtils.toObject(input), ckClassResult.getClassName())));
 
         var methods = ckClassResult.getMethods();
         methods = methods.stream().filter(method -> method.getLoc() >= minMethodLoc).collect(Collectors.toSet());
         for (var ckMethodResult : methods) {
             toRawSample(featureNames, ckClassResult, ckMethodResult)
                     .ifPresent(input -> samples.add(RefactoringUnit.createRefactoringUnit(diff, model,
-                            ckMethodResult.getStartLine(), input, ckMethodResult.getMethodName().split("/")[0])));
+                            ckMethodResult.getStartLine(), ArrayUtils.toObject(input), ckMethodResult.getMethodName().split("/")[0])));
         }
 
     }
