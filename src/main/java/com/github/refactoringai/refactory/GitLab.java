@@ -18,6 +18,7 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.gitlab4j.api.Constants.MergeRequestState;
+import org.gitlab4j.api.DiscussionsApi;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
 import org.gitlab4j.api.MergeRequestApi;
@@ -42,29 +43,26 @@ public class GitLab {
     private final Integer amountOfRecommendations;
     private final Float minimumCertaintyToRecommendThreshold;
 
-    private final GitLabApi gitLabApi;
     private final MergeRequestApi mergeRequestApi;
     private final ProjectApi projectApi;
+    private final DiscussionsApi discussionsApi;
 
     /**
      * @param recommendationTextTemplate
      * @param surveyBaseUrl
-     * @param gitLabApi
      * @param mergeRequestApi
      * 
      */
     @Inject
     // TODO this is probably not the best way of injecting these values, i need to
     // learn more about the framework probably to do it more idiomatic
-    public GitLab(@ConfigProperty(name = "amount.of.recommendations") Integer amountOfRecommendations,
-            @ConfigProperty(name = "ci.server.url") String gitLabServerUrl,
-            @ConfigProperty(name = "gitlab.oauth2.token") String gitLabAccessToken,
+    public GitLab(GitLabApi gitlabApi,
+            @ConfigProperty(name = "amount.of.recommendations", defaultValue = "2147483647") Integer amountOfRecommendations,
             @ConfigProperty(name = "survey.base.url") String surveyBaseUrl,
-            @ConfigProperty(name = "min.certainty.recommend.threshold") Float minimumCertaintyToRecommendThreshold) {
-        gitLabApi = new GitLabApi(gitLabServerUrl, gitLabAccessToken);
-        gitLabApi.setIgnoreCertificateErrors(true);
-        this.mergeRequestApi = gitLabApi.getMergeRequestApi();
-        this.projectApi = gitLabApi.getProjectApi();
+            @ConfigProperty(name = "min.certainty.recommend.threshold", defaultValue = "0.5") Float minimumCertaintyToRecommendThreshold) {
+        this.mergeRequestApi = gitlabApi.getMergeRequestApi();
+        this.projectApi = gitlabApi.getProjectApi();
+        this.discussionsApi = gitlabApi.getDiscussionsApi();
         this.amountOfRecommendations = amountOfRecommendations;
         this.surveyBaseUrl = surveyBaseUrl;
         this.minimumCertaintyToRecommendThreshold = minimumCertaintyToRecommendThreshold;
@@ -210,7 +208,6 @@ public class GitLab {
     private Discussion createRefactorDiscussion(Object projectIdOrPath, int mergeRequestIid, RefactoringUnit refactor,
             DiffRef diffRef) throws GitLabApiException, MalformedURLException, URISyntaxException {
 
-        var discussionsApi = gitLabApi.getDiscussionsApi();
         var position = new Position();
         position.setBaseSha(diffRef.getBaseSha());
         position.setHeadSha(diffRef.getHeadSha());

@@ -6,8 +6,9 @@ import com.github.refactoringai.refactory.Poller;
 
 import io.quarkus.runtime.Quarkus;
 import io.quarkus.runtime.QuarkusApplication;
+import io.quarkus.runtime.annotations.QuarkusMain;
 
-// @QuarkusMain
+@QuarkusMain
 public class PollerPredictor {
 
     /**
@@ -26,7 +27,6 @@ public class PollerPredictor {
 
         @Override
         public int run(String... args) throws Exception {
-            poller.startScheduler();
             blockMainThread();
             return 0;
         }

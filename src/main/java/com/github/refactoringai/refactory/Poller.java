@@ -8,7 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -47,8 +47,6 @@ public class Poller {
 
     private static final Logger LOG = Logger.getLogger(Poller.class);
 
-    private AtomicBoolean schedulerEnabled = new AtomicBoolean();
-
     @ConfigProperty(name = "git.username")
     String gitUsername;
 
@@ -59,7 +57,7 @@ public class Poller {
     Path modelPath;
 
     @ConfigProperty(name = "projects.path")
-    Path projectsPath;
+    Optional<Path> projectsPath;
 
     @ConfigProperty(name = "project.ids")
     List<Integer> projectIds;
@@ -76,9 +74,6 @@ public class Poller {
     @Inject
     Scheduler scheduler;
 
-    public synchronized void startScheduler() {
-        schedulerEnabled.set(true);
-    }
 
     private Git openOrCloneRepository(Path repositoryPath, String cloneUri, CredentialsProvider credentialsProvider)
             throws IOException, GitAPIException {
@@ -207,8 +202,8 @@ public class Poller {
         LOG.info("Finished polling all projects");
     }
 
-    private Path repositoryPathFromProject(Project project) {
-        return projectsPath.resolve(project.getPath());
+    private Path repositoryPathFromProject(Project project) throws IOException {
+        return projectsPath.orElse(Files.createTempDirectory(null)).resolve(project.getPath());
     }
 
     @Transactional

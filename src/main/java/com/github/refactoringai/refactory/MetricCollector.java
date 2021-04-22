@@ -34,7 +34,7 @@ public class MetricCollector {
     private static final int CLASS_START_LINE = 1;
     private static final Logger LOG = Logger.getLogger(MetricCollector.class);
 
-    @ConfigProperty(name = "min.method.loc")
+    @ConfigProperty(name = "min.method.loc", defaultValue = "1")
     Integer minMethodLoc;
 
     @Inject
