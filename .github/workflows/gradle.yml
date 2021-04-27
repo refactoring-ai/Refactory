@@ -20,5 +20,7 @@ jobs:
         java-version: 11
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    - name: Build with Gradle
+    - name: Build with Gradle and Quarkus
       run: ./gradlew quarkusBuild
+    - name: Test with Gradle
+      run: ./gradlew test

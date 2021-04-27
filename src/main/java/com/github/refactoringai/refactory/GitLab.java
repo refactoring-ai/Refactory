@@ -126,11 +126,6 @@ public class GitLab {
         return diffsForMergeRequestAndProjectIdOrPath(projectId, mergeRequestIid);
     }
 
-    public List<Diff> diffsForProjectPathAndMergeRequestIid(String projectPath, Integer mergeRequestIid)
-            throws GitLabApiException {
-        return diffsForMergeRequestAndProjectIdOrPath(projectPath, mergeRequestIid);
-    }
-
     public double medianCommitsPerMergeRequest(Object projectIdOrPath) throws GitLabApiException {
         List<MergeRequest> mrs = mergeRequestApi.getMergeRequests(projectIdOrPath);
 

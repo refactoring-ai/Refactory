@@ -47,6 +47,9 @@ public class Poller {
 
     private static final Logger LOG = Logger.getLogger(Poller.class);
 
+    @ConfigProperty(name = "git.fetch.before.checkout", defaultValue = "true")
+    Boolean fetchBeforeCheckout;
+
     @ConfigProperty(name = "git.username")
     String gitUsername;
 
@@ -74,7 +77,6 @@ public class Poller {
     @Inject
     Scheduler scheduler;
 
-
     private Git openOrCloneRepository(Path repositoryPath, String cloneUri, CredentialsProvider credentialsProvider)
             throws IOException, GitAPIException {
         try {
@@ -98,15 +100,17 @@ public class Poller {
         var credentialsProvider = new UsernamePasswordCredentialsProvider(gitUsername, gitLabAccessToken);
 
         try (Git git = openOrCloneRepository(repositoryPath, cloneUri, credentialsProvider)) {
-            // TODO create bean to prevent duplication above
-            git.fetch().setCredentialsProvider(credentialsProvider).setRemote("origin").call();
+            if (fetchBeforeCheckout) {
+                git.fetch().setCredentialsProvider(credentialsProvider).setRemote("origin").call();
+            }
+
             git.checkout().setName(sha).setForced(true).call();
         }
     }
 
     private Map<Path, Diff> buildDiffMap(Project project, MergeRequest mergeRequest) throws GitLabApiException {
         List<Diff> diffs = gitLab.diffsForProjectIdAndMergeRequestIid(project.getId(), mergeRequest.getIid());
-        return diffs.stream().filter(diff -> !diff.toString().contains("/src/test/"))
+        return diffs.stream().filter(diff -> !diff.getNewPath().contains("/src/test/"))
                 .collect(Collectors.toMap(diff -> Paths.get(diff.getNewPath()), Function.identity()));
     }
 
@@ -165,12 +169,13 @@ public class Poller {
         refactoryMergeRequest.persist();
     }
 
-    private void processProject(Project project)
+    private List<Discussion> processProject(Project project)
             throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
         LOG.infof("Polling for merge requests for project \"%s\"", project.getName());
         Path repositoryPath = repositoryPathFromProject(project);
         RefactoryProject refactoryProject = persistRefactoryProjectIfNotPersisted(project);
         List<MergeRequest> mergeRequests = gitLab.getOpenedMergeRequests(project);
+        var resultingGitlabDiscussions = new ArrayList<Discussion>();
         for (MergeRequest mergeRequest : mergeRequests) {
 
             if (RefactoryMergeRequest.hasMergeRequestBeenProcessed(mergeRequest, refactoryProject)) {
@@ -186,20 +191,23 @@ public class Poller {
             List<RefactoringUnit> toRecommend = getRefactoringUnitsForMergeRequest(repositoryPath, diffMap);
             toRecommend.forEach(unit -> unit.refactoryMergeRequest = refactoryMergeRequest);
 
-            processMergeRequest(mergeRequest, toRecommend, project);
+            resultingGitlabDiscussions.addAll(processMergeRequest(mergeRequest, toRecommend, project));
         }
+        return resultingGitlabDiscussions;
     }
 
-    public void poll() throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
+    public List<Discussion> poll()
+            throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
         var projects = new ArrayList<Project>();
         for (Integer projectId : projectIds) {
             projects.add(gitLab.getProjectById(projectId));
         }
-
+        List<Discussion> resultingGitLabDiscussions = new ArrayList<>();
         for (Project project : projects) {
-            processProject(project);
+            resultingGitLabDiscussions.addAll(processProject(project));
         }
         LOG.info("Finished polling all projects");
+        return resultingGitLabDiscussions;
     }
 
     private Path repositoryPathFromProject(Project project) throws IOException {
