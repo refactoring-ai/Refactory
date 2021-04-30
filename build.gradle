@@ -28,7 +28,7 @@ dependencies {
     implementation 'org.jboss.logmanager:log4j2-jboss-logmanager:1.0.0.Final'
     implementation 'org.jboss.slf4j:slf4j-jboss-logmanager:1.1.0.Final'
     implementation 'org.eclipse.jgit:org.eclipse.jgit:5.11.0.202103091610-r'
-    implementation('com.github.mauricioaniche:ck:0.6.3') {
+    implementation('com.github.mauricioaniche:ck:0.6.4') {
         exclude group: 'org.slf4j'
     }
     implementation 'org.apache.commons:commons-math3:3.6.1'
