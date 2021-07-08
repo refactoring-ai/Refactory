@@ -17,7 +17,7 @@ dependencies {
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
-    implementation 'com.microsoft.onnxruntime:onnxruntime:1.7.0'
+    implementation 'com.microsoft.onnxruntime:onnxruntime:1.8.1'
     implementation 'org.gitlab4j:gitlab4j-api:4.16.0'
     implementation 'io.quarkus:quarkus-jdbc-postgresql'
     implementation 'commons-lang:commons-lang:2.6'
