@@ -1,0 +1,3 @@
+[submodule "refactory-test"]
+	path = src/test/resources/mockproject
+	url = https://github.com/refactoring-ai-testing/refactory-test.git

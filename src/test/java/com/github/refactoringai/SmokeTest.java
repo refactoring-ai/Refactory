@@ -41,14 +41,14 @@ class SmokeTest {
 
     private static final String MOCK_GITLAB_PROJECT_PATH = "mockproject";
     private static final String MOCK_GITLAB_PROJECT_NAME = "mockproject";
-    private static final String MOCK_GIT_SHA = "af81d4c7083a2f23d1aa66ed435765148708307a";
-    private static final Path MOCK_TEST_JAVA_FILES_PATH = Paths.get("src/mockcompany");
+    private static final String MOCK_GIT_SHA = "cd03f7c87ef640f7ef06c965ad1963e0b10899bf";
 
     @Inject
     Poller poller;
 
     /**
-     * Tests whether
+     * 
+     * 
      * @throws GitLabApiException
      * @throws IOException
      * @throws GitAPIException
@@ -57,15 +57,16 @@ class SmokeTest {
      */
     @Test
     void testRefactors() throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
-        final Path MOCK_REFACTOR_PATH = MOCK_TEST_JAVA_FILES_PATH.resolve("MockJavaFileRefactor.java");
+        final Path MOCK_REFACTOR_PATH = Paths.get("MockJavaFileRefactor.java");
+        System.out.println(MOCK_REFACTOR_PATH.toAbsolutePath().toString());
         setupAndInstallGitLabApiMock(MOCK_REFACTOR_PATH, MOCK_GIT_SHA);
         List<Discussion> gitlabDiscussions = poller.poll();
-        assertEquals(3, gitlabDiscussions.size());
+        assertEquals(1, gitlabDiscussions.size());
     }
 
     @Test
     void testNoRefactors() throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
-        final Path MOCK_NO_REFACTOR_PATH = MOCK_TEST_JAVA_FILES_PATH.resolve("MockJavaFileNoRefactor.java");
+        final Path MOCK_NO_REFACTOR_PATH = Paths.get("MockJavaFileNoRefactor.java");
         setupAndInstallGitLabApiMock(MOCK_NO_REFACTOR_PATH, MOCK_GIT_SHA);
         List<Discussion> gitlabDiscussions = poller.poll();
         assertEquals(0, gitlabDiscussions.size());
@@ -79,8 +80,8 @@ class SmokeTest {
     private static GitLabApi setupGitLabMock(Path changedFilePath, String commitSha) throws GitLabApiException {
         // Mock the api
         var gitlabApiMock = Mockito.mock(GitLabApi.class);
-
-        // Create fake project and make projectapi return it, then make gitlabApi return that api
+        // Create fake project and make projectapi return it, then make gitlabApi return
+        // that api
         var gitlabProjectMock = new Project();
         gitlabProjectMock.setPath(MOCK_GITLAB_PROJECT_PATH);
         gitlabProjectMock.setId(MOCK_GITLAB_PROJECT_ID);
@@ -93,7 +94,6 @@ class SmokeTest {
         var discussionsApiMock = Mockito.mock(DiscussionsApi.class);
         Mockito.when(gitlabApiMock.getDiscussionsApi()).thenReturn(discussionsApiMock);
 
-
         var mergeRequestApiMock = Mockito.mock(MergeRequestApi.class);
 
         // Create the Merge Request without diffrefs as the behaviour of GitLab
@@ -101,7 +101,8 @@ class SmokeTest {
         Mockito.when(mergeRequestApiMock.getMergeRequests(any(MergeRequestFilter.class)))
                 .thenReturn(List.of(mergeRequest));
 
-        // Create mock of individually requested merge request which contain the diffref we need
+        // Create mock of individually requested merge request which contain the diffref
+        // we need
         var mergeRequestWithDiffReffs = createMergeRequestWithDiffRefs(mergeRequest.getIid(), commitSha);
         try {
             Mockito.when(mergeRequestApiMock.getMergeRequest(anyInt(), Mockito.eq(mergeRequest.getIid())))

@@ -79,8 +79,22 @@ public class Poller {
 
     private Git openOrCloneRepository(Path repositoryPath, String cloneUri, CredentialsProvider credentialsProvider)
             throws IOException, GitAPIException {
+
         try {
-            return Git.open(repositoryPath.toFile());
+            // TODO allow for specification of other git folders than .git
+            var dotGit = repositoryPath.resolve(".git");
+            if (Files.isDirectory(dotGit)) {
+                return Git.open(repositoryPath.toFile());
+            }
+            // is repo a submodule, in submodules there is a file with a path to the git
+            // objects instead of a .git folder (e.g. gitdir: ../../../../.git/modules/refactory-test\n hopefully git
+            // doesn't change the format of this):
+            var dotGitContents = Files.readString(dotGit);
+
+            // Trim necesarry for linebreak at the end of the file
+            var splitDotGitContents  = dotGitContents.split(" ")[1].trim();
+            var gitFilesPath = repositoryPath.resolve(splitDotGitContents).normalize();
+            return Git.open(gitFilesPath.toFile());
         } catch (RepositoryNotFoundException rnfe) {
             LOG.infof("Repository not found at %s trying to clone from %s", repositoryPath, cloneUri);
             Files.createDirectories(repositoryPath);
@@ -101,6 +115,7 @@ public class Poller {
 
         try (Git git = openOrCloneRepository(repositoryPath, cloneUri, credentialsProvider)) {
             if (fetchBeforeCheckout) {
+                // TODO allow for specification of other remotes than origin
                 git.fetch().setCredentialsProvider(credentialsProvider).setRemote("origin").call();
             }
 
@@ -183,7 +198,7 @@ public class Poller {
             }
             LOG.infof("Found not yet processed merge request \"%s\"", mergeRequest.getTitle());
             prepareRepository(repositoryPath, project.getHttpUrlToRepo(), mergeRequest.getSha());
-            RefactoryMergeRequest refactoryMergeRequest = RefactoryMergeRequest.fromGitlabMergeRequest(mergeRequest);
+            var refactoryMergeRequest = RefactoryMergeRequest.fromGitlabMergeRequest(mergeRequest);
             refactoryMergeRequest.project = refactoryProject;
             persistMergeRequestInTransaction(refactoryMergeRequest);
             Map<Path, Diff> diffMap = buildDiffMap(project, mergeRequest);
