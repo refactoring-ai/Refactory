@@ -17,7 +17,7 @@ dependencies {
     implementation 'io.quarkus:quarkus-arc'
     implementation 'io.quarkus:quarkus-hibernate-orm-panache'
     implementation 'com.microsoft.onnxruntime:onnxruntime:1.8.1'
-    implementation 'org.gitlab4j:gitlab4j-api:4.16.0'
+    implementation 'org.gitlab4j:gitlab4j-api:4.17.0'
     implementation 'io.quarkus:quarkus-jdbc-postgresql'
     implementation 'commons-lang:commons-lang:2.6'
     implementation 'org.apache.httpcomponents:httpclient:4.5.13'
