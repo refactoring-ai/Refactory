@@ -1,7 +1,6 @@
 plugins {
     id 'java'
     id 'io.quarkus'
-    id "com.github.ben-manes.versions" version "0.39.0"
 }
 
 repositories {
@@ -50,8 +49,8 @@ compileTestJava {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 test {
