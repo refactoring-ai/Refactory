@@ -23,7 +23,7 @@ dependencies {
     implementation 'com.google.guava:guava:31.0.1-jre'
     implementation 'io.quarkus:quarkus-jgit'
     implementation 'org.jboss.logmanager:log4j-jboss-logmanager:1.2.2.Final'
-    implementation 'org.jboss.logmanager:log4j2-jboss-logmanager:1.0.0.Final'
+    implementation 'org.jboss.logmanager:log4j2-jboss-logmanager:1.1.1.Final'
     implementation 'org.jboss.slf4j:slf4j-jboss-logmanager:1.1.0.Final'
     implementation('com.github.mauricioaniche:ck:0.6.4') {
         exclude group: 'org.slf4j'
