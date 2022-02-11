@@ -1,7 +1,7 @@
 # Refactory
 
 This project implements the recomendation of method level refactoring opportunities using Machine Learning on GitLab merge requests.
-The research that lead to this project consisted of recommending ``extract method'' on merge requests.
+The research that lead to this project consisted of recommending ''extract method'' on merge requests.
 Currently the tool is limited to the following toolchain as the research was performed in this setting:
 * GitLab
 * Survalyzer
