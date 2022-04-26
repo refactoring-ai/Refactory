@@ -63,7 +63,7 @@ public class Poller {
     Optional<Path> projectsPath;
 
     @ConfigProperty(name = "project.ids")
-    List<Integer> projectIds;
+    List<Long> projectIds;
 
     @Inject
     GitLab gitLab;
@@ -214,7 +214,7 @@ public class Poller {
     public List<Discussion> poll()
             throws GitLabApiException, IOException, GitAPIException, OrtException, URISyntaxException {
         var projects = new ArrayList<Project>();
-        for (Integer projectId : projectIds) {
+        for (Long projectId : projectIds) {
             projects.add(gitLab.getProjectById(projectId));
         }
         List<Discussion> resultingGitLabDiscussions = new ArrayList<>();

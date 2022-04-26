@@ -121,7 +121,7 @@ public class GitLab {
         return resultingDiscussions;
     }
 
-    public List<Diff> diffsForProjectIdAndMergeRequestIid(Integer projectId, Integer mergeRequestIid)
+    public List<Diff> diffsForProjectIdAndMergeRequestIid(Long projectId, Long mergeRequestIid)
             throws GitLabApiException {
         return diffsForMergeRequestAndProjectIdOrPath(projectId, mergeRequestIid);
     }
@@ -167,7 +167,7 @@ public class GitLab {
     public List<MergeRequest> getOpenedMergeRequests(Project project) throws GitLabApiException {
         var filter = new MergeRequestFilter();
         filter.setState(MergeRequestState.OPENED);
-        Integer projectId = project.getId();
+        Long projectId = project.getId();
         filter.setProjectId(projectId);
         List<MergeRequest> mergeRequestsWithoutDiffRefs = mergeRequestApi.getMergeRequests(filter);
 
@@ -182,7 +182,7 @@ public class GitLab {
         return mergeRequestsWithDiffRefs;
     }
 
-    public Project getProjectById(Integer projectId) throws GitLabApiException {
+    public Project getProjectById(Long projectId) throws GitLabApiException {
         return projectApi.getProject(projectId);
     }
 
@@ -200,7 +200,7 @@ public class GitLab {
         return String.format(Locale.US, SURVALYZER_URL_VAR_IDENTIFIER, number);
     }
 
-    private Discussion createRefactorDiscussion(Object projectIdOrPath, int mergeRequestIid, RefactoringUnit refactor,
+    private Discussion createRefactorDiscussion(Object projectIdOrPath, Long mergeRequestIid, RefactoringUnit refactor,
             DiffRef diffRef) throws GitLabApiException, MalformedURLException, URISyntaxException {
 
         var position = new Position();
@@ -225,7 +225,7 @@ public class GitLab {
      * @return The diffs of the merge request.
      * @throws GitLabApiException If fetching the diffs was not succesfull.
      */
-    private List<Diff> diffsForMergeRequestAndProjectIdOrPath(Object projectIdOrPath, int mergeRequestIid)
+    private List<Diff> diffsForMergeRequestAndProjectIdOrPath(Object projectIdOrPath, Long mergeRequestIid)
             throws GitLabApiException {
         return mergeRequestApi.getMergeRequestChanges(projectIdOrPath, mergeRequestIid).getChanges();
     }

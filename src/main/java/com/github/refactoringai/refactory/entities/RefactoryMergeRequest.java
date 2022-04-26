@@ -21,7 +21,7 @@ import io.quarkus.panache.common.Parameters;
 public class RefactoryMergeRequest extends PanacheEntity {
 
     @Column(name = "merge_request_iid", nullable = false)
-    public Integer mergeRequestIid;
+    public Long mergeRequestIid;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "project_id", nullable = false)
