@@ -2,7 +2,7 @@ package com.github.refactoringai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -36,8 +36,8 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 class SmokeTest {
 
-    private static final Integer MOCK_GITLAB_PROJECT_ID = 42;
-    private static final Integer MOCK_GITLAB_MERGE_REQUEST_IID = 145;
+    private static final Long MOCK_GITLAB_PROJECT_ID = 42L;
+    private static final Long MOCK_GITLAB_MERGE_REQUEST_IID = 145L;
 
     private static final String MOCK_GITLAB_PROJECT_PATH = "mockproject";
     private static final String MOCK_GITLAB_PROJECT_NAME = "mockproject";
@@ -87,7 +87,7 @@ class SmokeTest {
         gitlabProjectMock.setId(MOCK_GITLAB_PROJECT_ID);
         gitlabProjectMock.setName(MOCK_GITLAB_PROJECT_NAME);
         var projectApiMock = Mockito.mock(ProjectApi.class);
-        Mockito.when(projectApiMock.getProject(anyInt())).thenReturn(gitlabProjectMock);
+        Mockito.when(projectApiMock.getProject(anyLong())).thenReturn(gitlabProjectMock);
         Mockito.when(gitlabApiMock.getProjectApi()).thenReturn(projectApiMock);
 
         // Mock discussionApi and let gitLabApi return it
@@ -105,7 +105,7 @@ class SmokeTest {
         // we need
         var mergeRequestWithDiffReffs = createMergeRequestWithDiffRefs(mergeRequest.getIid(), commitSha);
         try {
-            Mockito.when(mergeRequestApiMock.getMergeRequest(anyInt(), Mockito.eq(mergeRequest.getIid())))
+            Mockito.when(mergeRequestApiMock.getMergeRequest(anyLong(), Mockito.eq(mergeRequest.getIid())))
                     .thenReturn(mergeRequestWithDiffReffs);
         } catch (GitLabApiException glae) {
             throw new RuntimeException(glae);
@@ -115,19 +115,19 @@ class SmokeTest {
         var mergeRequestWithChanges = createMergeRequestWithChanges(mergeRequestWithDiffReffs.getIid(),
                 mergeRequestWithDiffReffs.getSha(), changedFilePath);
         Mockito.when(
-                mergeRequestApiMock.getMergeRequestChanges(anyInt(), Mockito.eq(mergeRequestWithDiffReffs.getIid())))
+                mergeRequestApiMock.getMergeRequestChanges(anyLong(), Mockito.eq(mergeRequestWithDiffReffs.getIid())))
                 .thenReturn(mergeRequestWithChanges);
         Mockito.when(gitlabApiMock.getMergeRequestApi()).thenReturn(mergeRequestApiMock);
         return gitlabApiMock;
     }
 
-    private static MergeRequest createMergeRequest(Integer iId) {
+    private static MergeRequest createMergeRequest(Long iId) {
         var mergeRequest = new MergeRequest();
         mergeRequest.setIid(iId);
         return mergeRequest;
     }
 
-    private static MergeRequest createMergeRequestWithDiffRefs(Integer iId, String commitSha) {
+    private static MergeRequest createMergeRequestWithDiffRefs(Long iId, String commitSha) {
         var mergeRequestWithDiffReffs = createMergeRequest(iId);
         mergeRequestWithDiffReffs.setSha(commitSha);
         var diffRef = new DiffRef();
@@ -138,7 +138,7 @@ class SmokeTest {
         return mergeRequestWithDiffReffs;
     }
 
-    private static MergeRequest createMergeRequestWithChanges(Integer iId, String commitSha, Path changedFilePath) {
+    private static MergeRequest createMergeRequestWithChanges(Long iId, String commitSha, Path changedFilePath) {
         var mergeRequestWithChanges = createMergeRequestWithDiffRefs(iId, commitSha);
         var diff = new Diff();
         diff.setOldPath("");

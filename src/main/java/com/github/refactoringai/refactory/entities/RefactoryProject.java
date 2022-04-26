@@ -19,7 +19,7 @@ import io.quarkus.hibernate.orm.panache.PanacheEntity;
 public class RefactoryProject extends PanacheEntity {
 
     @Column(name = "gitlab_id", nullable = false)
-    public Integer gitlabId;
+    public Long gitlabId;
 
     @Column(nullable = false)
     public String name;
